@@ -34,6 +34,3 @@ export interface EnumSchema {
 export interface ConstSchema {
     const: PrimitiveValue;
 }
-
-export type BasicSchema = StringSchema | NumericSchema | BoolSchema
-    | NullSchema | EnumSchema | ConstSchema;

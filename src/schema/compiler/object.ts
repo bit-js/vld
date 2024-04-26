@@ -1,4 +1,9 @@
-import { compileArray, compileConst, compileInt, compileNumber, compileNumberLiteral, compileObj, compileString, compileStringLiteral } from '.';
+import {
+    compileArray, compileConst, compileEnum, compileInt, compileNumber,
+    compileNumberLiteral, compileObj, compileString, compileStringLiteral,
+    validateBoolOptional,
+    validateNilOptional
+} from './basic';
 
 export class ObjectCompileContext {
     private readonly keys: string[] = [];
@@ -47,6 +52,7 @@ export class ObjectCompileContext {
 
             const code = type.charCodeAt(2);
             switch (code) {
+                // String & Array
                 case 114:
                     if (type.charCodeAt(3) === 114) return this.addCheck(val, compileArray(schema, optional));
 
@@ -57,6 +63,7 @@ export class ObjectCompileContext {
                     conditions.push(compileStringLiteral(val, schema, optional));
                     return;
 
+                // Number & Integer
                 case 109:
                 case 116:
                     if (optional || typeof schema.multipleOf === 'number' || typeof schema.minimum === 'number' || typeof schema.exclusiveMinimum === 'number' || typeof schema.maximum === 'number' || typeof schema.exclusiveMaximum === 'number')
@@ -65,15 +72,19 @@ export class ObjectCompileContext {
                     conditions.push(compileNumberLiteral(val, code === 116, schema, optional));
                     return;
 
+                // Object
                 case 106: return this.addCheck(val, compileObj(schema, optional));
 
+                // Bool & Null
                 case 111:
+                    if (optional) return this.addCheck(val, validateBoolOptional);
+
                     conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}typeof ${val}==='boolean')`);
                     return;
                 case 108:
-                    if (optional) return this.addCheck(val, compileConst(schema, true));
+                    if (optional) return this.addCheck(val, validateNilOptional);
 
-                    conditions.push(`${val}===null`);
+                    conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val}===null)`);
                     return;
 
                 // Other type for some reason
@@ -82,18 +93,22 @@ export class ObjectCompileContext {
         }
 
         if ('enum' in schema) {
+            if (optional) return this.addCheck(val, compileEnum(schema, true));
+
             const values = schema.enum;
 
             const set: Record<any, null> = {};
             for (let i = 0, { length } = values; i < length; ++i) set[values[i]] = null;
 
             const key = this.put(set);
-            conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val} in ${key})`);
+            conditions.push(`${val} in ${key}`);
 
             return;
         }
 
         if ('const' in schema) {
+            if (optional) return this.addCheck(val, compileConst(schema, true));
+
             conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val}===${JSON.stringify(schema.const)})`);
             return;
         }

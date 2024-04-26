@@ -1,8 +1,19 @@
-import type { ArraySchema } from './array';
-import type { BasicSchema } from './basic';
-import type { ObjectSchema } from './object';
+import type { ArraySchema, InferArraySchema } from './array';
+import type { BoolSchema, ConstSchema, EnumSchema, NullSchema, NumericSchema, StringSchema } from './basic';
+import type { InferObjectSchema, ObjectSchema } from './object';
 
-export type Schema = BasicSchema | ObjectSchema | ArraySchema;
+export type Schema = StringSchema | NumericSchema | BoolSchema
+    | NullSchema | EnumSchema | ConstSchema | ArraySchema | ObjectSchema;
+
+export type InferSchema<T extends Schema> =
+    T extends StringSchema ? string :
+    T extends NumericSchema ? number :
+    T extends BoolSchema ? boolean :
+    T extends NullSchema ? null :
+    T extends EnumSchema ? T['enum'][number] :
+    T extends ConstSchema ? T['const'] :
+    T extends ArraySchema ? InferArraySchema<T> :
+    T extends ObjectSchema ? InferObjectSchema<T> : any;
 
 export * from './array';
 export * from './basic';
