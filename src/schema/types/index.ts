@@ -5,6 +5,7 @@ import type { InferObjectSchema, ObjectSchema } from './object';
 export type Schema = StringSchema | NumericSchema | BoolSchema
     | NullSchema | EnumSchema | ConstSchema | ArraySchema | ObjectSchema;
 
+/* eslint-disable */
 export type InferSchema<T extends Schema> =
     T extends StringSchema ? string :
     T extends NumericSchema ? number :
