@@ -1,0 +1,15 @@
+# Development
+/src
+/tests
+/bench
+/examples
+
+/tsconfig.json
+/build.ts
+
+# Locks
+/bun.lockb
+
+# Git
+/.git
+/.gitignore

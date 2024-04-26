@@ -1,0 +1,30 @@
+{
+  "name": "@bit-js/vld",
+  "version": "1.0.0",
+  "author": "aquapi",
+  "license": "MIT",
+  "keywords": [
+    "validator"
+  ],
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": "./lib/index.js",
+    "./*": "./lib/*.js"
+  },
+  "scripts": {
+    "build:test": "bun build.ts && bun test",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "latest",
+    "eslint": "latest",
+    "typescript-eslint": "latest",
+    "eslint-plugin-jsdoc": "latest",
+    "@types/bun": "latest",
+    "mitata": "latest",
+    "typescript": "latest"
+  }
+}
