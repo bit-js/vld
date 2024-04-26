@@ -1,4 +1,4 @@
-import type { InferSchema, Schema } from '.';
+import type { Infer, Schema } from '.';
 
 type SchemaRecord = Record<string, Schema>;
 type BaseRecord = Record<string, any>;
@@ -17,5 +17,5 @@ type Split<T extends BaseRecord, RequiredKeys extends string> = {
     };
 
 export type InferObjectSchema<T extends ObjectSchema> = T['properties'] extends SchemaRecord ? Split<{
-    [K in keyof T['properties']]: InferSchema<T['properties'][K]>
+    [K in keyof T['properties']]: Infer<T['properties'][K]>
 }, T['required'] extends string[] ? T['required'][number] : any> : BaseRecord;
