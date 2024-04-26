@@ -6,7 +6,7 @@ export type Schema = StringSchema | NumericSchema | BoolSchema
     | NullSchema | EnumSchema | ConstSchema | ArraySchema | ObjectSchema;
 
 /* eslint-disable */
-export type InferSchema<T extends Schema> =
+export type Infer<T extends Schema> =
     T extends StringSchema ? string :
     T extends NumericSchema ? number :
     T extends BoolSchema ? boolean :

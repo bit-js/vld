@@ -1,4 +1,4 @@
-import type { InferSchema, Schema } from '../types';
+import type { Infer, Schema } from '../types';
 import {
     compileArray, compileConst, compileEnum, compileInt,
     compileNumber, compileObj, compileString,
@@ -6,7 +6,7 @@ import {
 } from './basic';
 
 /* eslint-disable */
-export function compile<const T extends Schema>(schema: T): (data: any) => data is InferSchema<T> {
+export function compile<const T extends Schema>(schema: T): (data: any) => data is Infer<T> {
     if ('type' in schema) {
         const { type } = schema;
 
