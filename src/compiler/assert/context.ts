@@ -1,4 +1,4 @@
-import type { ArraySchema, EnumSchema, NumericSchema, ObjectSchema, StringSchema } from '../../schema';
+import type { ArraySchema, EnumSchema, NumericSchema, ObjectSchema, Schema, StringSchema } from '../../schema';
 import { compileNumberLiteral, compileStringLiteral } from './basic';
 
 function spreadEnumItem(item: any): string {
@@ -6,15 +6,16 @@ function spreadEnumItem(item: any): string {
 }
 
 export default class Context {
-    private readonly dependencies: string[] = [];
+    public readonly dependencies: string[] = [];
+    public readonly code: string;
 
-    public finalize(): any {
-        const { dependencies } = this;
-        return `${dependencies.join('')}return f${dependencies.length - 1}`;
+    public constructor(schema: Schema) {
+        const id = this.compile(schema);
+        this.code = `${this.dependencies.join('')}return f${id}`;
     }
 
     // Add a dependency
-    public push(literal: string): number {
+    private push(literal: string): number {
         const { dependencies } = this;
         const { length } = dependencies;
 
@@ -22,27 +23,27 @@ export default class Context {
         return length;
     }
 
-    public pushFunc(conditions: string[]): number {
+    private pushFunc(conditions: string[]): number {
         return this.push(`(o)=>${conditions.join('&&')}`);
     }
 
-    public pushSet(list: any[]): number {
+    private pushSet(list: any[]): number {
         return this.push(`{${list.map(spreadEnumItem).join()}}`);
     }
 
-    public compileString(schema: StringSchema, optional: boolean): number {
+    private compileString(schema: StringSchema, optional: boolean): number {
         return this.push(`(o)=>${compileStringLiteral('o', schema, optional)}`);
     }
 
-    public compileNumber(schema: NumericSchema, checkInteger: boolean, optional: boolean): number {
+    private compileNumber(schema: NumericSchema, checkInteger: boolean, optional: boolean): number {
         return this.push(`(o)=>${compileNumberLiteral('o', checkInteger, schema, optional)}`);
     }
 
-    public compileEnum(schema: EnumSchema, optional: boolean): number {
+    private compileEnum(schema: EnumSchema, optional: boolean): number {
         return this.push(`(o)=>${optional ? "typeof o==='undefined'||" : ''}o in f${this.pushSet(schema.enum)}`);
     }
 
-    public compileArray(schema: ArraySchema, optional: boolean): number {
+    private compileArray(schema: ArraySchema, optional: boolean): number {
         // Array
         const { items, prefixItems } = schema;
 
@@ -66,7 +67,7 @@ export default class Context {
         return this.push(`(o)=>{if(!(${conditions.join('&&')}))return false;for(let i=${prefixItemsLen},{length}=o;i<length;++i)if(!(f${checkItem}(o[i])))return false;return true;}`);
     }
 
-    public compileObject(schema: ObjectSchema, optional: boolean): number {
+    private compileObject(schema: ObjectSchema, optional: boolean): number {
         const { properties, required = [] } = schema;
         if (typeof properties === 'undefined')
             return this.push(`(o)=>${optional ? "typeof o==='undefined'||" : ''}typeof o==='object'&&o!==null`);
@@ -78,7 +79,7 @@ export default class Context {
     }
 
     /* eslint-disable */
-    public compile(schema: any): number {
+    private compile(schema: any): number {
         if ('type' in schema) {
             const { type } = schema;
             const code = type.charCodeAt(2);
@@ -112,7 +113,7 @@ export default class Context {
         throw new Error(`Invalid schema: ${JSON.stringify(schema, null, 4)}`);
     }
 
-    public compileKey(conditions: string[], key: string | number, schema: any, optional: boolean): void {
+    private compileKey(conditions: string[], key: string | number, schema: any, optional: boolean): void {
         const val = typeof key === 'number' ? `o[${key}]` : `o.${key}`;
 
         if ('type' in schema) {

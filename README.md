@@ -38,5 +38,5 @@ if (isUser(user)) {
 
 For compile a schema to an assertion function ahead of time:
 ```ts
-fs.writeFileSync('code.ts', `const isUser = (()=>{${compile.assertCode(schema)}})();`);
+const code = `const isUser = (()=>{${compile.inspectAssert(schema).code}})();`;
 ```
