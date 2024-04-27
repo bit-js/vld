@@ -11,20 +11,17 @@ export default class Context {
 
     public constructor(schema: Schema) {
         const id = this.compile(schema);
-        this.code = `${this.dependencies.join('')}return f${id}`;
+        this.code = `${this.dependencies.join('')}return f${id};`;
     }
 
     // Add a dependency
     private push(literal: string): number {
         const { dependencies } = this;
-        const { length } = dependencies;
-
-        dependencies.push(`const f${length}=${literal};`);
-        return length;
+        return dependencies.push(`const f${dependencies.length}=${literal};`) - 1;
     }
 
-    private pushFunc(conditions: string[]): number {
-        return this.push(`(o)=>${conditions.join('&&')}`);
+    private pushFunc(conditions: string): number {
+        return this.push(`(o)=>${conditions}`);
     }
 
     private pushSet(list: any[]): number {
@@ -52,8 +49,8 @@ export default class Context {
                 return this.push(optional ? "(o)=>typeof o==='undefined'||Array.isArray(o)" : 'Array.isArray');
 
             const conditions = [`${optional ? "typeof o==='undefined'||" : ''}Array.isArray(o)`];
-            for (let i = 0, { length } = prefixItems; i < length; ++i) this.compileKey(conditions, i, prefixItems[i], false);
-            return this.pushFunc(conditions);
+            for (let i = 0, { length } = prefixItems; i < length; ++i) this.compileKey(conditions, `o[${i}]`, prefixItems[i], false);
+            return this.pushFunc(conditions.join('&&'));
         }
 
         const checkItem = this.compile(items);
@@ -62,7 +59,7 @@ export default class Context {
 
         const conditions = [`${optional ? "typeof o==='undefined'||" : ''}Array.isArray(o)`];
         const prefixItemsLen = prefixItems.length;
-        for (let i = 0; i < prefixItemsLen; ++i) this.compileKey(conditions, i, prefixItems[i], false);
+        for (let i = 0; i < prefixItemsLen; ++i) this.compileKey(conditions, `o[${i}]`, prefixItems[i], false);
 
         return this.push(`(o)=>{if(!(${conditions.join('&&')}))return false;for(let i=${prefixItemsLen},{length}=o;i<length;++i)if(!(f${checkItem}(o[i])))return false;return true;}`);
     }
@@ -73,9 +70,9 @@ export default class Context {
             return this.push(`(o)=>${optional ? "typeof o==='undefined'||" : ''}typeof o==='object'&&o!==null`);
 
         const conditions = [`${optional ? "typeof o==='undefined'||" : ''}typeof o==='object'&&o!==null`];
-        for (const key in properties) this.compileKey(conditions, key, properties[key], !required.includes(key));
+        for (const key in properties) this.compileKey(conditions, `o.${key}`, properties[key], !required.includes(key));
 
-        return this.pushFunc(conditions);
+        return this.pushFunc(conditions.join('&&'));
     }
 
     /* eslint-disable */
@@ -113,13 +110,11 @@ export default class Context {
         throw new Error(`Invalid schema: ${JSON.stringify(schema, null, 4)}`);
     }
 
-    private compileKey(conditions: string[], key: string | number, schema: any, optional: boolean): void {
-        const val = typeof key === 'number' ? `o[${key}]` : `o.${key}`;
-
+    private compileKey(conditions: string[], val: string, schema: any, optional: boolean): void {
         if ('type' in schema) {
             const { type } = schema;
-
             const code = type.charCodeAt(2);
+
             switch (code) {
                 // String & Array
                 case 114:
@@ -156,10 +151,16 @@ export default class Context {
 
                 // Bool & Null
                 case 111:
-                    conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}typeof ${val}==='boolean')`);
+                    conditions.push(optional
+                        ? `f${this.push(`(o)=>typeof o==='undefined'||typeof o==='boolean'`)}(${val})`
+                        : `typeof ${val}==='boolean'`
+                    );
                     return;
                 case 108:
-                    conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val}===null)`);
+                    conditions.push(optional
+                        ? `f${this.push(`(o)=>typeof o==='undefined'||o===null`)}(${val})`
+                        : `${val}===null`
+                    );
                     return;
 
                 // Other type for some reason
@@ -168,10 +169,16 @@ export default class Context {
         }
 
         else if ('enum' in schema)
-            conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val} in f${this.pushSet(schema.enum)})`);
+            conditions.push(optional
+                ? `f${this.compileEnum(schema, true)}(${val})`
+                : `${val} in f${this.pushSet(schema.enum)})`
+            );
 
         else if ('const' in schema)
-            conditions.push(`(${optional ? `typeof ${val}==='undefined'||` : ''}${val}===${JSON.stringify(schema.const)})`)
+            conditions.push(optional
+                ? `f${this.push(`(o)=>typeof o==='undefined'||o===${JSON.stringify(schema.const)}`)}(${val})`
+                : `${val}===${JSON.stringify(schema.const)}`
+            );
 
         else throw new Error(`Invalid schema: ${JSON.stringify(schema, null, 4)}`);
     }
