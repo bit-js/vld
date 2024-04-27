@@ -1,8 +1,8 @@
-import { schema } from '@bit-js/vld';
+import { compile } from '@bit-js/vld';
 import { expect, test } from 'bun:test';
 
 test('Basic object', () => {
-    const f = schema.compile({
+    const f = compile.assert({
         type: 'object',
         properties: {
             name: { type: 'string', minLength: 3 },
@@ -30,7 +30,7 @@ test('Basic object', () => {
 });
 
 test('Basic array', () => {
-    const f = schema.compile({
+    const f = compile.assert({
         type: 'array',
         items: {
             type: 'string',
@@ -45,7 +45,7 @@ test('Basic array', () => {
 });
 
 test('Tuple', () => {
-    const f = schema.compile({
+    const f = compile.assert({
         type: 'array',
         prefixItems: [{
             type: 'number',

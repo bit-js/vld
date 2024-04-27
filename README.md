@@ -5,7 +5,7 @@ This library implements a subset of JSON schema draft 7.
 
 ## Usage
 ```ts
-import { schema } from '@bit-js/vld';
+import { schema, compile } from '@bit-js/vld';
 
 // Type hint for JSON schema
 const Username = schema.create({
@@ -15,10 +15,10 @@ const Username = schema.create({
 });
 
 // Extract type from schema
-export type Username = schema.Infer<Username>;
+export type Username = schema.Infer<typeof Username>;
 
-// Compile a schema
-const isUser = schema.compile({
+// Compile a schema to an assertion function
+const isUser = compile.assert({
     type: 'object',
     properties: {
         name: Username,
