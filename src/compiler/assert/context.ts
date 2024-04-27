@@ -53,15 +53,14 @@ export default class Context {
             return this.pushFunc(conditions.join('&&'));
         }
 
-        const checkItem = this.compile(items);
         if (typeof prefixItems === 'undefined')
-            return this.push(`(o)=>${optional ? "typeof o==='undefined'||" : ''}Array.isArray(o)&&o.every(f${checkItem})`);
+            return this.push(`(o)=>${optional ? "typeof o==='undefined'||" : ''}Array.isArray(o)&&o.every(f${this.compile(items)})`);
 
         const conditions = [`${optional ? "typeof o==='undefined'||" : ''}Array.isArray(o)`];
         const prefixItemsLen = prefixItems.length;
         for (let i = 0; i < prefixItemsLen; ++i) this.compileKey(conditions, `o[${i}]`, prefixItems[i], false);
 
-        return this.push(`(o)=>{if(!(${conditions.join('&&')}))return false;for(let i=${prefixItemsLen},{length}=o;i<length;++i)if(!(f${checkItem}(o[i])))return false;return true;}`);
+        return this.push(`(o)=>{if(!(${conditions.join('&&')}))return false;for(let i=${prefixItemsLen},{length}=o;i<length;++i)if(!(f${this.compile(items)}(o[i])))return false;return true;}`);
     }
 
     private compileObject(schema: ObjectSchema, optional: boolean): number {
