@@ -35,3 +35,8 @@ if (isUser(user)) {
     user.nickname; // string | undefined
 }
 ```
+
+For compile a schema to an assertion function ahead of time:
+```ts
+fs.writeFileSync('code.ts', `const isUser = (()=>{${compile.assertCode(schema)}})();`);
+```
