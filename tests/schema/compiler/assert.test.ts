@@ -11,6 +11,7 @@ test('Basic object', () => {
         },
         required: ['name', 'age']
     });
+    console.log(f.toString());
 
     expect(f({
         name: 'abc',
@@ -37,6 +38,8 @@ test('Basic array', () => {
             minLength: 3
         }
     });
+    console.log(f.toString());
+
 
     expect(f([])).toBeTrue();
     expect(f(['a'])).toBeFalse();
@@ -56,6 +59,7 @@ test('Tuple', () => {
             minLength: 3
         }
     });
+    console.log(f.toString());
 
     expect(f([])).toBeFalse();
     expect(f([10])).toBeFalse();

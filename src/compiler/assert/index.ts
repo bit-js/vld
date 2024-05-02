@@ -1,10 +1,10 @@
 import type { Infer, Schema } from '../../schema';
-import Context from './context';
+import { inspectCompile } from './guard';
 
 export function assert<const T extends Schema>(schema: T): (data: any) => data is Infer<T> {
-    return Function(inspectAssert(schema).code)();
+    return Function(inspectAssert(schema))();
 }
 
-export function inspectAssert(schema: Schema): Context {
-    return new Context(schema);
+export function inspectAssert(schema: Schema): string {
+    return inspectCompile(schema);
 }

@@ -7,14 +7,14 @@ export type Schema = (StringSchema | NumericSchema | BoolSchema
 
 /* eslint-disable */
 export type Infer<T extends Schema> =
-    T extends StringSchema ? string :
-    T extends NumericSchema ? number :
-    T extends BoolSchema ? boolean :
-    T extends NullSchema ? null :
-    T extends EnumSchema ? T['enum'][number] :
-    T extends ConstSchema ? T['const'] :
-    T extends ArraySchema ? InferArraySchema<T> :
-    T extends ObjectSchema ? InferObjectSchema<T> : any;
+    (T extends StringSchema ? string : any)
+    & (T extends NumericSchema ? number : any)
+    & (T extends BoolSchema ? boolean : any)
+    & (T extends NullSchema ? null : any)
+    & (T extends EnumSchema ? T['enum'][number] : any)
+    & (T extends ConstSchema ? T['const'] : any)
+    & (T extends ArraySchema ? InferArraySchema<T> : any)
+    & (T extends ObjectSchema ? InferObjectSchema<T> : any);
 
 export * from './array';
 export * from './basic';
