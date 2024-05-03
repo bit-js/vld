@@ -6,6 +6,14 @@ export function pushFn(decls: string[], body: string): number {
     return length;
 }
 
+export function createFn(decls: string[], schema: any): number {
+    return pushFn(decls, compileLiteral('x', decls, schema));
+}
+
+export function pushRegex(decls: string[], pattern: string): number {
+    return push(decls, `new RegExp(${JSON.stringify(pattern)})`);
+}
+
 export function push(decls: string[], body: string): number {
     const { length } = decls;
     decls.push(`const f${length}=${body}`);
@@ -37,13 +45,13 @@ export function getTypeCondition(val: string, type: string): string {
     }
 }
 
-export function getArrayConditions(val: string, conditions: string[], decls: string[], items: any, prefixItems: any): void {
+export function setArrayItemsConditions(val: string, conditions: string[], decls: string[], items: any, prefixItems: any): void {
     if (typeof items === 'undefined') {
         if (typeof prefixItems !== 'undefined')
             // eslint-disable-next-line
             for (let i = 0, { length } = prefixItems; i < length; ++i) setConditions(`${val}[${i}]`, conditions, decls, prefixItems[i]);
     } else if (typeof prefixItems === 'undefined')
-        conditions.push(`${val}.every(f${pushFn(decls, compileLiteral('x', decls, items))})`);
+        conditions.push(`${val}.every(f${createFn(decls, items)})`);
     else {
         const tupleConditions: string[] = [];
 
@@ -52,18 +60,60 @@ export function getArrayConditions(val: string, conditions: string[], decls: str
         // eslint-disable-next-line
         for (let i = 0; i < length; ++i) setConditions(`x[${i}]`, tupleConditions, decls, prefixItems[i]);
 
-        conditions.push(`f${pushFn(decls, `{if(!(${tupleConditions.join('&&')}))return false;for(let i=${length},{length}=x;i<length;++i)if(!(${compileLiteral('x[i]', decls, items)}))return false;return true;}`)}(${val})`);
+        conditions.push(`f${pushFn(
+            decls,
+            `{if(!(${tupleConditions.join('&&')}))return false;for(let i=${length},{length}=x;i<length;++i)if(!(${compileLiteral('x[i]', decls, items)}))return false;return true;}`
+        )}(${val})`);
     }
 }
 
 export function setArrayConditions(val: string, conditions: string[], decls: string[], schema: any): void {
+    /* Items */
+    if ('minItems' in schema)
+        // eslint-disable-next-line
+        conditions.push(`${val}.length>${schema.minItems - 1}`);
+
+    if ('maxItems' in schema)
+        // eslint-disable-next-line
+        conditions.push(`${val}.length<${schema.maxItems + 1}`);
+
     // eslint-disable-next-line
-    if (Array.isArray(schema.items)) getArrayConditions(val, conditions, decls, schema.additionalItems, schema.items);
+    if (Array.isArray(schema.items)) setArrayItemsConditions(val, conditions, decls, schema.additionalItems, schema.items);
     // eslint-disable-next-line
-    else getArrayConditions(val, conditions, decls, schema.items ?? schema.additionalItems, schema.prefixItems);
+    else setArrayItemsConditions(val, conditions, decls, schema.items ?? schema.additionalItems, schema.prefixItems);
+
+    /* Unique items */
+    // eslint-disable-next-line
+    if (schema.uniqueItems === true)
+        conditions.push(`new Set(${val}).length===${val}.length`);
+
+    /* Contain */
+    if ('contains' in schema) {
+        // eslint-disable-next-line
+        const hasMinContain = typeof schema.minContains === 'number';
+        // eslint-disable-next-line
+        const hasMaxContain = typeof schema.maxContains === 'number';
+
+        if (hasMinContain || hasMaxContain) {
+            conditions.push(`f${pushFn(
+                decls,
+                // eslint-disable-next-line
+                `{let c=0;for(let i=0,{length}=x;i<length;++i)c+=${compileLiteral('x[i]', decls, schema.contains)}?1:0;return ${hasMaxContain ? `c<${schema.maxContains + 1}` : ''}${hasMaxContain && hasMinContain ? '&&' : ''}${hasMinContain ? `c>${schema.minContains - 1}` : ''};}`
+            )}(${val})`);
+            // eslint-disable-next-line
+        } else conditions.push(`${val}.some(f${createFn(decls, schema.contains)})`);
+    } else {
+        if ('minContains' in schema)
+            // eslint-disable-next-line
+            conditions.push(`${val}.length>${schema.minContains - 1}`);
+
+        if ('maxContains' in schema)
+            // eslint-disable-next-line
+            conditions.push(`${val}.length<${schema.maxContains + 1}`);
+    }
 }
 
-export function getPropsCondition(val: string, conditions: string[], decls: string[], schema: any): void {
+export function setPropsCondition(val: string, conditions: string[], decls: string[], schema: any): void {
     // eslint-disable-next-line
     const { properties } = schema;
 
@@ -82,7 +132,21 @@ export function getPropsCondition(val: string, conditions: string[], decls: stri
             }
         }
         // eslint-disable-next-line
-    } else for (const key in properties) setConditions(`${val}.${key}`, conditions, decls, properties[key]);
+    } else for (const key in properties) {
+        const propVal = `${val}.${key}`;
+        // eslint-disable-next-line
+        conditions.push(`(typeof ${propVal}==='undefined'||${compileLiteral(propVal, decls, properties[key])})`);
+    }
+}
+
+export function getPropsPatternCondition(val: string, decls: string[], patternProperties: any): string {
+    const funcConditions: string[] = [];
+
+    for (const key in patternProperties)
+        // eslint-disable-next-line
+        funcConditions.push(`(f${pushRegex(decls, key)}.test(i)&&!(${compileLiteral('x[i]', decls, patternProperties[key])}))`);
+
+    return `f${pushFn(decls, `{for(const i in x)if(${funcConditions.join('||')})return false;return true;}`)}(${val})`;
 }
 
 export function getEnumCondition(val: string, enumList: any[], decls: string[]): string {
@@ -98,6 +162,7 @@ export function setConditions(val: string, conditions: string[], decls: string[]
         // eslint-disable-next-line
         conditions.push(getTypeCondition(val, schema.type));
 
+    // Enum & const
     if ('enum' in schema)
         // eslint-disable-next-line
         conditions.push(getEnumCondition(val, schema.enum, decls));
@@ -106,9 +171,15 @@ export function setConditions(val: string, conditions: string[], decls: string[]
         // eslint-disable-next-line
         conditions.push(getConstCondition(val, schema.const));
 
+    // Objects
     if ('properties' in schema)
-        getPropsCondition(val, conditions, decls, schema);
+        setPropsCondition(val, conditions, decls, schema);
 
+    if ('patternProperties' in schema)
+        // eslint-disable-next-line
+        conditions.push(getPropsPatternCondition(val, decls, schema.patternProperties));
+
+    // String
     if ('minLength' in schema)
         // eslint-disable-next-line
         conditions.push(`${val}.length>${schema.minLength - 1}`);
@@ -117,6 +188,11 @@ export function setConditions(val: string, conditions: string[], decls: string[]
         // eslint-disable-next-line
         conditions.push(`${val}.length<${schema.maxLength + 1}`);
 
+    if ('pattern' in schema)
+        // eslint-disable-next-line
+        conditions.push(`f${pushRegex(decls, schema.pattern)}.test(${val})`);
+
+    // Number
     if ('minimum' in schema)
         // eslint-disable-next-line
         conditions.push(`${val}>=${schema.minimum}`);
