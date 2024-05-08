@@ -14,17 +14,18 @@
     "./*": "./lib/*.js"
   },
   "scripts": {
-    "build:test": "bun build.ts && bun test",
+    "build:test": "bun build.ts && bun test --bail=5",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix"
   },
   "devDependencies": {
+    "@json-schema-org/tests": "^2.0.0",
     "@stylistic/eslint-plugin": "latest",
-    "eslint": "latest",
-    "typescript-eslint": "latest",
-    "eslint-plugin-jsdoc": "latest",
     "@types/bun": "latest",
+    "eslint": "latest",
+    "eslint-plugin-jsdoc": "latest",
     "mitata": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "typescript-eslint": "latest"
   }
 }

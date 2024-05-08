@@ -3,7 +3,7 @@ import type { PrimitiveValue } from './utils';
 export interface StringSchema {
     type: 'string';
 
-    pattern: string;
+    pattern?: string;
 
     minLength?: number;
     maxLength?: number;
