@@ -1,16 +1,16 @@
 import { compileSchemaLiteral, setConditions } from './basic';
 
-export default function setConditionalProps(val: string, conditions: string[], decls: string[], schema: any): void {
+export default function setConditionalProps(val: string, conditions: string[], typeSet: number, decls: string[], schema: any): void {
     if ('if' in schema && 'then' in schema) {
         // eslint-disable-next-line
-        const ifStatement = compileSchemaLiteral(val, decls, schema.if);
+        const ifStatement = compileSchemaLiteral(val, typeSet, decls, schema.if);
         if (ifStatement !== null) {
             // eslint-disable-next-line
-            const thenStatement = compileSchemaLiteral(val, decls, schema.then);
+            const thenStatement = compileSchemaLiteral(val, typeSet, decls, schema.then);
 
             if ('else' in schema) {
                 // eslint-disable-next-line
-                const elseStatement = compileSchemaLiteral(val, decls, schema.else);
+                const elseStatement = compileSchemaLiteral(val, typeSet, decls, schema.else);
 
                 if (elseStatement !== null || thenStatement !== null)
                     conditions.push(`(!(${ifStatement})${thenStatement !== null ? `||(${thenStatement})` : ''}${elseStatement !== null ? `||(${elseStatement})` : ''})`);
@@ -25,7 +25,7 @@ export default function setConditionalProps(val: string, conditions: string[], d
         // eslint-disable-next-line
         for (let i = 0, { length } = allOf; i < length; ++i)
             // eslint-disable-next-line
-            setConditions(val, conditions, decls, allOf[i]);
+            setConditions(val, conditions, typeSet, decls, allOf[i]);
     }
 
     if ('anyOf' in schema) {
@@ -37,7 +37,7 @@ export default function setConditionalProps(val: string, conditions: string[], d
         const schemaConditions: string[] = [];
         for (let i = 0; i < length; ++i) {
             // eslint-disable-next-line
-            const literal = compileSchemaLiteral(val, decls, anyOf[i]);
+            const literal = compileSchemaLiteral(val, typeSet, decls, anyOf[i]);
             if (literal !== null) schemaConditions.push(literal);
         }
 
@@ -46,7 +46,7 @@ export default function setConditionalProps(val: string, conditions: string[], d
 
     if ('not' in schema) {
         // eslint-disable-next-line
-        const literal = compileSchemaLiteral(val, decls, schema.not);
+        const literal = compileSchemaLiteral(val, typeSet, decls, schema.not);
         conditions.push(literal === null ? 'false' : `!(${literal})`);
     }
 }

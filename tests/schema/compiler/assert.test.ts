@@ -19,13 +19,15 @@ for (let i = 0, { length } = tests; i < length; ++i) {
 
             describe(`${item.description}: ${JSON.stringify(item.schema, null, 4)}`, () => {
                 const f = compile.assert(item.schema);
+                const strF = f.toString();
+
                 const fn = (e: any) => f(e) ? e : null;
 
                 const { tests } = item;
                 for (let i = 0, { length } = tests; i < length; ++i) {
                     const item = tests[i];
 
-                    test(`${item.description}: ${JSON.stringify(item.data, null, 4)}`, () => {
+                    test(`${item.description}: ${JSON.stringify(item.data, null, 4)}: ${strF}`, () => {
                         expect(fn(item.data)).toEqual(item.valid ? item.data : null);
                     });
                 }

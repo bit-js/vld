@@ -5,15 +5,15 @@ function setArrayItemsConditions(val: string, conditions: string[], decls: strin
     if (typeof items === 'undefined') {
         if (typeof prefixItems !== 'undefined')
             // eslint-disable-next-line
-            for (let i = 0, { length } = prefixItems; i < length; ++i) setConditions(`${val}[${i}]`, conditions, decls, prefixItems[i]);
+            for (let i = 0, { length } = prefixItems; i < length; ++i) setConditions(`${val}[${i}]`, conditions, 0, decls, prefixItems[i]);
     } else if (typeof prefixItems === 'undefined')
         conditions.push(`${val}.every(f${createFn(decls, items)})`);
     else {
         // Check whether item condition is any
-        const itemLiteral = compileSchemaLiteral('x[i]', decls, items);
+        const itemLiteral = compileSchemaLiteral('x[i]', 0, decls, items);
         if (itemLiteral === null) {
             // eslint-disable-next-line
-            for (let i = 0, { length } = prefixItems; i < length; ++i) setConditions(`${val}[${i}]`, conditions, decls, prefixItems[i]);
+            for (let i = 0, { length } = prefixItems; i < length; ++i) setConditions(`${val}[${i}]`, conditions, 0, decls, prefixItems[i]);
             return;
         }
 
@@ -22,7 +22,7 @@ function setArrayItemsConditions(val: string, conditions: string[], decls: strin
         // eslint-disable-next-line
         const { length } = prefixItems;
         // eslint-disable-next-line
-        for (let i = 0; i < length; ++i) setConditions(`x[${i}]`, tupleConditions, decls, prefixItems[i]);
+        for (let i = 0; i < length; ++i) setConditions(`x[${i}]`, tupleConditions, 0, decls, prefixItems[i]);
 
         conditions.push(tupleConditions.length === 0
             ? `${val}.every(f${createFn(decls, items)})`
@@ -30,7 +30,17 @@ function setArrayItemsConditions(val: string, conditions: string[], decls: strin
     }
 }
 
-export default function setArrayConditions(val: string, conditions: string[], decls: string[], schema: any): void {
+export default function setArrayConditions(val: string, conditions: string[], typeSet: number, decls: string[], schema: any): void {
+    if ((typeSet & 1) !== 1) {
+        const schemaConditions: string[] = [];
+        setArrayConditions(val, schemaConditions, typeSet | 1, decls, schema);
+
+        if (schemaConditions.length !== 0)
+            conditions.push(`(!Array.isArray(${val})||${schemaConditions.join('&&')})`);
+
+        return;
+    }
+
     /* Items */
     if ('minItems' in schema)
         // eslint-disable-next-line
@@ -59,7 +69,7 @@ export default function setArrayConditions(val: string, conditions: string[], de
 
         if (hasMinContain || hasMaxContain) {
             // eslint-disable-next-line
-            const literal = compileSchemaLiteral('x[i]', decls, schema.contains);
+            const literal = compileSchemaLiteral('x[i]', 0, decls, schema.contains);
 
             conditions.push(literal === null
                 // eslint-disable-next-line

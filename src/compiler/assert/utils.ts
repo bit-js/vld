@@ -30,7 +30,7 @@ export function pushFn(decls: string[], body: string): number {
 }
 
 export function createFn(decls: string[], schema: any): number {
-    return pushFn(decls, compileSchemaLiteral('x', decls, schema) ?? 'true');
+    return pushFn(decls, compileSchemaLiteral('x', 0, decls, schema) ?? 'true');
 }
 
 export function pushRegex(decls: string[], pattern: string): number {
