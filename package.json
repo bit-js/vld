@@ -6,6 +6,8 @@
   "keywords": [
     "validator"
   ],
+  "homepage": "https://github.com/bit-js/vld#readme",
+  "bugs": "https://github.com/bit-js/vld/issues",
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
